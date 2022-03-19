@@ -182,9 +182,6 @@ const App = () => {
 				TOKEN_PROGRAM_ID,
 				createMintingWallet
 			);
-			console.log(
-				`[DEBUGGING: mint.toBuffer]: ${createMintingWallet.publicKey}`
-			);
 			const fromTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(
 					createMintingWallet.publicKey
@@ -258,7 +255,6 @@ const App = () => {
 			);
 			const fromTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(provider.publicKey);
-			// fixme:
 			const toTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(receiverWallet);
 
