@@ -16,7 +16,7 @@ import {
 import { Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 const App = () => {
-	// don't forget import useState
+	// don't forget to import useState
 	const [walletConnected, setWalletConnected] = useState(false);
 	const [provider, setProvider] = useState();
 	const [loading, setLoading] = useState();
@@ -140,7 +140,9 @@ const App = () => {
 
 			console.log('SIGNATURE:', signature);
 
-			setCreatedTokenPublicKey(creatorToken.publicKey.toString());
+			// fixmeok: setCreatedTokenPublicKey(creatorToken.publicKey.toString());
+			// **QUESTBOOK BUG**: remove `.toString()` or will get a `TypeError: mint.toBuffer is not a function`
+			setCreatedTokenPublicKey(creatorToken.publicKey);
 			setIsTokenCreated(true);
 			setLoading(false);
 		} catch (err) {
@@ -158,12 +160,14 @@ const App = () => {
 		try {
 			setLoading(true);
 			const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
+			//Creating Temp wallet
 			const createMintingWallet = await Keypair.fromSecretKey(
 				Uint8Array.from(Object.values(JSON.parse(mintingWalletSecretKey)))
 			);
 			const mintRequester = await provider.publicKey;
 
-			const fromAirDropSignature = await connection.requestAirdrop(
+			//Airdrop
+			var fromAirDropSignature = await connection.requestAirdrop(
 				createMintingWallet.publicKey,
 				LAMPORTS_PER_SOL
 			);
@@ -171,18 +175,24 @@ const App = () => {
 				commitment: 'confirmed',
 			});
 
+			//Creating Token with Constructor and fetching saved public key
 			const creatorToken = new Token(
 				connection,
 				createdTokenPublicKey,
 				TOKEN_PROGRAM_ID,
 				createMintingWallet
 			);
+			console.log(
+				`[DEBUGGING: mint.toBuffer]: ${createMintingWallet.publicKey}`
+			);
 			const fromTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(
 					createMintingWallet.publicKey
 				);
+
 			const toTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(mintRequester);
+
 			await creatorToken.mintTo(
 				fromTokenAccount.address,
 				createMintingWallet.publicKey,
@@ -200,13 +210,13 @@ const App = () => {
 					100000000
 				)
 			);
-			await sendAndConfirmTransaction(
+			const signature = await sendAndConfirmTransaction(
 				connection,
 				transaction,
 				[createMintingWallet],
 				{ commitment: 'confirmed' }
 			);
-
+			console.log('SIGNATURE:', signature);
 			setLoading(false);
 		} catch (err) {
 			console.log(err);
@@ -223,7 +233,7 @@ const App = () => {
 
 			const connection = new Connection(clusterApiUrl('devnet'), 'confirmed');
 
-			const createMintingWallet = Keypair.fromSecretKey(
+			const createMintingWallet = await Keypair.fromSecretKey(
 				Uint8Array.from(Object.values(JSON.parse(mintingWalletSecretKey)))
 			);
 			// friends' waller
@@ -248,6 +258,7 @@ const App = () => {
 			);
 			const fromTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(provider.publicKey);
+			// fixme:
 			const toTokenAccount =
 				await creatorToken.getOrCreateAssociatedAccountInfo(receiverWallet);
 
@@ -305,7 +316,7 @@ const App = () => {
 				TOKEN_PROGRAM_ID,
 				createMintingWallet
 			);
-			// KEY CODE : set minting authority to null
+			// KEY CODE: set minting authority to null
 			await creatorToken.setAuthority(
 				createdTokenPublicKey,
 				null,
@@ -346,14 +357,17 @@ const App = () => {
 				) : (
 					<></>
 				)}
+				{/* show after initial token created */}
 				{walletConnected ? (
-					isTokenCreated ? (
+					!isTokenCreated ? (
 						<li>
 							Create your own token{' '}
-							<button disabled={loading} onClick={initialMintHelper}>
+							<button
+								disabled={loading || isTokenCreated}
+								onClick={initialMintHelper}
+							>
 								Initial Mint{' '}
 							</button>
-							{/* show after initial token created */}
 						</li>
 					) : (
 						<li>
